@@ -27,9 +27,10 @@
             font-family: "Charter", "Georgia", "Palatino", "Times New Roman", serif;
             line-height: 1.58;
             color: var(--text-primary);
-            max-width: 680px;
-            margin: 0 auto;
-            padding: 80px 20px;
+            max-width: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 40px 60px;
             background: #ffffff;
             min-height: 100vh;
             font-size: 21px;
@@ -216,6 +217,60 @@
             position: relative;
         }
         
+        /* Full-width diagrams */
+        pre.full-width {
+            width: 100%;
+            max-width: 100%;
+            padding-left: 20px;
+            padding-right: 20px;
+            overflow-x: hidden !important;
+            white-space: pre;
+            font-size: 0.75em;
+            box-sizing: border-box;
+            line-height: 1.3;
+        }
+        
+        pre.full-width code {
+            white-space: pre;
+            display: block;
+            width: 100%;
+            overflow: hidden;
+            font-size: inherit;
+            max-width: 100%;
+        }
+        
+        @media (min-width: 1400px) {
+            pre.full-width {
+                font-size: 0.85em;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            pre.full-width {
+                font-size: 0.7em;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            pre.full-width {
+                font-size: 0.65em;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            pre.full-width {
+                font-size: 0.6em;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            pre.full-width {
+                font-size: 0.55em;
+            }
+        }
+        
         pre::before {
             display: none;
         }
@@ -309,9 +364,17 @@
         }
         
         /* Responsive design */
+        @media (min-width: 1400px) {
+            body {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 60px 80px;
+            }
+        }
+        
         @media (max-width: 768px) {
             body {
-                padding: 40px 20px;
+                padding: 30px 20px;
                 font-size: 18px;
                 max-width: 100%;
             }
@@ -737,7 +800,7 @@ Server increments: counter = 1, hash(secret_key, 1) → "123456" ✓</code></pre
 <li><strong>Counter-based Flow Diagram:</strong></li>
 </ul>
 
-<pre><code>┌────────────────────────────────────────────────────────────────┐
+<pre class="full-width"><code>┌────────────────────────────────────────────────────────────────┐
 │              HOTP Authentication Flow                          │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                │
