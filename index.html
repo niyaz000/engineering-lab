@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Lab - Articles & Projects</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --text-primary: rgba(0, 0, 0, 0.84);
+            --text-secondary: rgba(0, 0, 0, 0.68);
+            --text-muted: rgba(0, 0, 0, 0.54);
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --border-color: rgba(0, 0, 0, 0.15);
+            --accent-color: #000000;
+            --hover-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        body {
+            font-family: "Charter", "Georgia", "Palatino", "Times New Roman", serif;
+            line-height: 1.58;
+            color: var(--text-primary);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 80px 20px;
+            background: var(--bg-primary);
+            min-height: 100vh;
+        }
+        
+        header {
+            margin-bottom: 60px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        h1 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 48px;
+            line-height: 1.2;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: -0.022em;
+            color: var(--text-primary);
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 10px;
+        }
+        
+        .articles-section {
+            margin-top: 40px;
+        }
+        
+        .section-title {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--text-primary);
+            letter-spacing: -0.016em;
+        }
+        
+        .article-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .article-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 25px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            height: 100%;
+        }
+        
+        .article-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .article-card:visited {
+            color: inherit;
+        }
+        
+        .article-title {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            letter-spacing: -0.014em;
+        }
+        
+        .article-description {
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+        
+        .article-meta {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .article-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        
+        .empty-state p {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        footer {
+            margin-top: 80px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 36px;
+            }
+            
+            .article-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Engineering Lab</h1>
+        <p class="subtitle">Articles, tutorials, and projects exploring software engineering from first principles</p>
+    </header>
+    
+    <main>
+        <section class="articles-section">
+            <h2 class="section-title">Articles</h2>
+            
+            <div class="article-grid" id="articles-container">
+                <!-- Article cards will be populated here -->
+                <a href="totp/index.html" class="article-card">
+                    <div class="article-title">Reinventing TOTP: A Journey from First Principles</div>
+                    <div class="article-description">
+                        Exploring how Time-based One-Time Passwords work by building them from scratch, understanding the cryptographic principles, and the elegant solution to secure authentication.
+                    </div>
+                    <div class="article-meta">
+                        <span class="article-tag">Security</span>
+                        <span class="article-tag">Cryptography</span>
+                    </div>
+                </a>
+                
+                <!-- Add more articles here as needed -->
+                <!-- Example template:
+                <a href="path/to/article/index.html" class="article-card">
+                    <div class="article-title">Article Title</div>
+                    <div class="article-description">
+                        Brief description of the article content.
+                    </div>
+                    <div class="article-meta">
+                        <span class="article-tag">Category</span>
+                    </div>
+                </a>
+                -->
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Built with simplicity and attention to detail</p>
+    </footer>
+    
+    <script>
+        // Optional: You can dynamically load articles from a JSON file
+        // This makes it easier to manage articles without editing HTML
+        /*
+        async function loadArticles() {
+            try {
+                const response = await fetch('articles.json');
+                const articles = await response.json();
+                const container = document.getElementById('articles-container');
+                
+                articles.forEach(article => {
+                    const card = document.createElement('a');
+                    card.href = article.path;
+                    card.className = 'article-card';
+                    card.innerHTML = `
+                        <div class="article-title">${article.title}</div>
+                        <div class="article-description">${article.description}</div>
+                        <div class="article-meta">
+                            ${article.tags.map(tag => `<span class="article-tag">${tag}</span>`).join('')}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.log('Articles loaded from HTML');
+            }
+        }
+        
+        loadArticles();
+        */
+    </script>
+</body>
+</html>
