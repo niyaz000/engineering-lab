@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reinventing TOTP: A Journey from First Principles</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            /* Medium.com inspired color scheme */
+            --text-primary: rgba(0, 0, 0, 0.84);
+            --text-secondary: rgba(0, 0, 0, 0.68);
+            --text-muted: rgba(0, 0, 0, 0.54);
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --bg-code: #f6f6f6;
+            --bg-code-dark: #1a1a1a;
+            --border-color: rgba(0, 0, 0, 0.15);
+        }
+        
+        body {
+            font-family: "Charter", "Georgia", "Palatino", "Times New Roman", serif;
+            line-height: 1.58;
+            color: var(--text-primary);
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 80px 20px;
+            background: #ffffff;
+            min-height: 100vh;
+            font-size: 21px;
+            letter-spacing: -0.003em;
+        }
+        
+        body > h1:first-of-type {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 0;
+            margin: 0 0 20px 0;
+            border: none;
+            text-align: left;
+        }
+        
+        /* Cover Image - Medium style */
+        .cover-image {
+            width: 100%;
+            max-width: 100%;
+            height: 400px;
+            margin: 0 0 50px 0;
+            background: #f5f5f5;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cover-image img,
+        .cover-image svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .cover-image svg {
+            object-fit: contain;
+            background: #fafafa;
+        }
+        
+        /* Subtle placeholder when no image */
+        .cover-image:empty::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.05) 100%),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(0, 0, 0, 0.02) 10px,
+                    rgba(0, 0, 0, 0.02) 20px
+                );
+        }
+        
+        @media (max-width: 768px) {
+            .cover-image {
+                height: 250px;
+                margin: 0 0 30px 0;
+            }
+        }
+        
+        h1 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 42px;
+            line-height: 1.25;
+            margin-bottom: 0.5em;
+            margin-top: 0;
+            font-weight: 700;
+            letter-spacing: -0.022em;
+            color: var(--text-primary);
+            border: none;
+            padding: 0;
+        }
+        
+        h2 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 34px;
+            line-height: 1.22;
+            margin-top: 2em;
+            margin-bottom: 0.5em;
+            color: var(--text-primary);
+            font-weight: 700;
+            letter-spacing: -0.019em;
+            position: relative;
+            padding-left: 0;
+        }
+        
+        h2::before {
+            display: none;
+        }
+        
+        h3 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 28px;
+            line-height: 1.3;
+            margin-top: 1.8em;
+            margin-bottom: 0.5em;
+            color: var(--text-primary);
+            font-weight: 600;
+            letter-spacing: -0.016em;
+        }
+        
+        h4 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 24px;
+            line-height: 1.3;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            color: var(--text-primary);
+            font-weight: 600;
+            letter-spacing: -0.014em;
+        }
+        
+        h5 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 20px;
+            line-height: 1.4;
+            margin-top: 1.2em;
+            margin-bottom: 0.4em;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        p {
+            margin-bottom: 1.58em;
+            color: var(--text-primary);
+            font-size: 21px;
+            line-height: 1.58;
+        }
+        
+        ul, ol {
+            margin-left: 0;
+            margin-bottom: 1.58em;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin-bottom: 0.79em;
+            color: var(--text-primary);
+            line-height: 1.58;
+            font-size: 21px;
+        }
+        
+        ul li::marker {
+            color: var(--text-primary);
+        }
+        
+        ol li::marker {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+        
+        code {
+            background-color: var(--bg-code);
+            color: var(--text-primary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "SF Mono", "Monaco", "Menlo", "Consolas", "Courier New", monospace;
+            font-size: 0.9em;
+            font-weight: 400;
+            border: none;
+        }
+        
+        pre {
+            background: var(--bg-code-dark);
+            color: #ffffff;
+            padding: 20px;
+            border-radius: 3px;
+            overflow-x: auto;
+            margin: 1.58em 0;
+            font-family: "SF Mono", "Monaco", "Menlo", "Consolas", "Courier New", monospace;
+            font-size: 16px;
+            line-height: 1.58;
+            white-space: pre;
+            border: none;
+            position: relative;
+        }
+        
+        pre::before {
+            display: none;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+            border: none;
+            font-weight: 400;
+        }
+        
+        /* Syntax highlighting for Python code */
+        pre code .keyword { color: #c792ea; }
+        pre code .string { color: #c3e88d; }
+        pre code .function { color: #82aaff; }
+        pre code .comment { color: #546e7a; }
+        
+        strong {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        em {
+            font-style: italic;
+            color: var(--text-primary);
+        }
+        
+        hr {
+            border: none;
+            height: 1px;
+            background: var(--border-color);
+            margin: 3em 0;
+        }
+        
+        a {
+            color: var(--text-primary);
+            text-decoration: underline;
+            font-weight: 400;
+            transition: opacity 0.2s ease;
+        }
+        
+        a:hover {
+            opacity: 0.7;
+        }
+        
+        /* Table of Contents styling */
+        h2#table-of-contents {
+            background: transparent;
+            padding: 0;
+            margin: 2em 0 0 0;
+            border: none;
+            position: relative;
+        }
+        
+        h2#table-of-contents::before {
+            display: none;
+        }
+        
+        h2#table-of-contents + ol {
+            background: transparent;
+            padding: 0;
+            margin: 0.5em 0 2em 0;
+            border: none;
+        }
+        
+        h2#table-of-contents + ol li {
+            margin-bottom: 0.5em;
+            padding-left: 0;
+            transition: none;
+        }
+        
+        h2#table-of-contents + ol li:hover {
+            padding-left: 0;
+        }
+        
+        h2#table-of-contents + ol li a {
+            color: var(--text-primary);
+            font-weight: 400;
+            transition: opacity 0.2s ease;
+            display: inline-block;
+        }
+        
+        h2#table-of-contents + ol li a:hover {
+            opacity: 0.7;
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            body {
+                padding: 40px 20px;
+                font-size: 18px;
+                max-width: 100%;
+            }
+            
+            h1 {
+                font-size: 32px;
+            }
+            
+            h2 {
+                font-size: 28px;
+            }
+            
+            h3 {
+                font-size: 24px;
+            }
+            
+            h4 {
+                font-size: 20px;
+            }
+            
+            p, li {
+                font-size: 18px;
+            }
+            
+            pre {
+                font-size: 14px;
+                padding: 15px;
+            }
+        }
+        
+        /* Selection styling */
+        ::selection {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
+        }
+        
+        /* Focus styles for accessibility */
+        a:focus,
+        code:focus {
+            outline: 2px solid var(--text-primary);
+            outline-offset: 2px;
+        }
+        
+        /* Custom scrollbar for code blocks */
+        pre::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        pre::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        pre::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        pre::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            body > * {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1 id="reinventing-totp-a-journey-from-first-principles">Reinventing TOTP: A Journey from First Principles</h1>
+
+<!-- CURRENT COVER IMAGE (Option 1) - Icons with OTP codes -->
+<div class="cover-image">
+    <svg width="1200" height="400" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%; display: block;">
+        <!-- Subtle background -->
+        <rect width="1200" height="400" fill="#fafafa"/>
+        
+        <!-- Minimal grid pattern -->
+        <defs>
+            <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(0,0,0,0.02)" stroke-width="0.5"/>
+            </pattern>
+        </defs>
+        <rect width="1200" height="400" fill="url(#grid)"/>
+        
+        <!-- Clock representing time (left) -->
+        <g opacity="0.7">
+            <circle cx="250" cy="200" r="70" fill="none" stroke="#000" stroke-width="2.5"/>
+            <line x1="250" y1="200" x2="250" y2="150" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+            <line x1="250" y1="200" x2="300" y2="200" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="250" cy="200" r="4" fill="#000"/>
+        </g>
+        
+        <!-- Lock representing security (center) -->
+        <g opacity="0.7">
+            <path d="M 550 130 Q 550 110 570 110 L 630 110 Q 650 110 650 130 L 650 150 L 670 150 L 670 130 Q 670 90 630 90 L 570 90 Q 530 90 530 130 L 530 150 Z" 
+                  fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="550" y="150" width="100" height="70" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="600" cy="185" r="6" fill="#000"/>
+        </g>
+        
+        <!-- Key representing authentication (right) - horizontal lateral view -->
+        <g opacity="0.7" transform="translate(950, 200)">
+            <!-- Key head (round ring on left) -->
+            <circle cx="-50" cy="0" r="20" fill="none" stroke="#000" stroke-width="3"/>
+            <!-- Key shaft (horizontal body) -->
+            <line x1="-30" y1="0" x2="10" y2="0" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+            <!-- Key blade (side view - thin profile showing edge) -->
+            <path d="M 10 -8 L 45 -8 L 45 -5 L 50 -5 L 50 5 L 45 5 L 45 8 L 10 8 Z" 
+                  fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Key teeth/notches on the edge (lateral view) -->
+            <path d="M 20 -8 L 20 -12 L 25 -12 L 25 -8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 30 -8 L 30 -14 L 35 -14 L 35 -8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 25 8 L 25 12 L 30 12 L 30 8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 35 8 L 35 14 L 40 14 L 40 8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+        </g>
+        
+        <!-- OTP codes at bottom -->
+        <text x="200" y="330" font-family="'SF Mono', 'Monaco', 'Menlo', monospace" font-size="28" font-weight="500" fill="#000" opacity="0.5" letter-spacing="2px">456789</text>
+        <text x="550" y="330" font-family="'SF Mono', 'Monaco', 'Menlo', monospace" font-size="28" font-weight="500" fill="#000" opacity="0.5" letter-spacing="2px">123456</text>
+        <text x="900" y="330" font-family="'SF Mono', 'Monaco', 'Menlo', monospace" font-size="28" font-weight="500" fill="#000" opacity="0.5" letter-spacing="2px">789012</text>
+        
+        <!-- Subtle connecting arrows -->
+        <path d="M 320 200 L 530 200" stroke="#000" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.2" marker-end="url(#arrowhead)"/>
+        <path d="M 650 200 L 930 200" stroke="#000" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.2" marker-end="url(#arrowhead)"/>
+        
+        <!-- Arrow marker definition -->
+        <defs>
+            <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="2" orient="auto">
+                <polygon points="0 0, 8 2, 0 4" fill="#000" opacity="0.2"/>
+            </marker>
+        </defs>
+        
+        <!-- Subtle title -->
+        <text x="600" y="80" font-family="'sohne', 'Helvetica Neue', sans-serif" font-size="20" font-weight="500" fill="#000" opacity="0.3" text-anchor="middle" letter-spacing="1px">TIME • SECURITY • AUTHENTICATION</text>
+    </svg>
+</div>
+
+<!-- 
+ALTERNATIVE COVER IMAGE (Option 2) - Minimalist design with large OTP display
+To use this option, comment out Option 1 above and uncomment this section
+
+<div class="cover-image">
+    <svg viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+        <rect width="1200" height="400" fill="#fafafa"/>
+        <defs>
+            <pattern id="diagonal-alt" width="100" height="100" patternUnits="userSpaceOnUse">
+                <path d="M 0 0 L 100 100" fill="none" stroke="rgba(0,0,0,0.015)" stroke-width="0.5"/>
+            </pattern>
+        </defs>
+        <rect width="1200" height="400" fill="url(#diagonal-alt)"/>
+        <g transform="translate(600, 200)">
+            <circle cx="0" cy="0" r="100" fill="none" stroke="#000" stroke-width="2" opacity="0.1"/>
+            <text x="0" y="20" font-family="'SF Mono', 'Monaco', 'Menlo', monospace" font-size="72" font-weight="600" fill="#000" opacity="0.8" text-anchor="middle" letter-spacing="8px">456789</text>
+            <text x="0" y="80" font-family="'sohne', 'Helvetica Neue', sans-serif" font-size="16" font-weight="400" fill="#000" opacity="0.4" text-anchor="middle">Valid for 30 seconds</text>
+        </g>
+        <g opacity="0.5">
+            <circle cx="300" cy="320" r="25" fill="none" stroke="#000" stroke-width="2"/>
+            <line x1="300" y1="320" x2="300" y2="300" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+            <line x1="300" y1="320" x2="315" y2="320" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M 550 300 Q 550 295 555 295 L 575 295 Q 580 295 580 300 L 580 305 L 590 305 L 590 300 Q 590 290 575 290 L 555 290 Q 540 290 540 300 L 540 305 Z" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="550" y="305" width="30" height="20" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="565" cy="315" r="3" fill="#000"/>
+            <circle cx="900" cy="320" r="18" fill="none" stroke="#000" stroke-width="2"/>
+            <line x1="918" y1="320" x2="950" y2="320" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="950" y="310" width="20" height="20" rx="2" fill="none" stroke="#000" stroke-width="2"/>
+            <rect x="960" y="305" width="6" height="8" rx="1" fill="none" stroke="#000" stroke-width="1.5"/>
+            <rect x="965" y="315" width="6" height="8" rx="1" fill="none" stroke="#000" stroke-width="1.5"/>
+        </g>
+        <text x="600" y="60" font-family="'sohne', 'Helvetica Neue', sans-serif" font-size="18" font-weight="500" fill="#000" opacity="0.3" text-anchor="middle" letter-spacing="2px">TOTP: TIME-BASED ONE-TIME PASSWORD</text>
+    </svg>
+</div>
+-->
+
+<h2 id="table-of-contents">Table of Contents</h2>
+
+<ol>
+<li><a href="#the-problem-were-trying-to-solve">The Problem We're Trying to Solve</a></li>
+<li><a href="#the-one-time-password-otp">The One-Time Password (OTP)</a></li>
+<li><a href="#exploring-solutions-generating-random-passwords-independently">Exploring Solutions: Generating Random Passwords Independently</a></li>
+<li><a href="#time-as-the-variable-totp">Time as the Variable (TOTP)</a></li>
+<li><a href="#handling-clock-skew-and-time-steps">Handling Clock Skew and Time Steps</a></li>
+<li><a href="#the-complete-algorithm">The Complete Algorithm</a></li>
+<li><a href="#why-this-design-works">Why This Design Works</a></li>
+<li><a href="#downsides-and-implementation-considerations">Downsides and Implementation Considerations</a></li>
+<li><a href="#security-considerations">Security Considerations</a></li>
+<li><a href="#the-evolution">The Evolution</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ol>
+
+<hr>
+
+<h2 id="the-problem-we-re-trying-to-solve">The Problem We're Trying to Solve</h2>
+
+<p>Imagine you're building a system where users need to authenticate themselves. The traditional approach is simple: username and password. But passwords have several fundamental problems:</p>
+
+<ul>
+<li><strong>Weak passwords can be guessed</strong>: Simple passwords like "123456" or "password" are easily guessed by attackers.</li>
+<li><strong>Can be stolen</strong>: Passwords can be intercepted through phishing attacks, keyloggers, or social engineering.</li>
+<li><strong>Server-side breaches</strong>: Databases get hacked, and password hashes (or worse, plaintext passwords) get leaked.</li>
+<li><strong>Brute force attacks</strong>: Weak passwords can be cracked through automated brute force attempts.</li>
+<li><strong>Password reuse</strong>: Users often reuse the same password across multiple sites, so one breach compromises many accounts.</li>
+<li><strong>No expiration</strong>: Once stolen, a password remains valid indefinitely until manually changed.</li>
+<li><strong>Human factor</strong>: Users tend to choose weak, memorable passwords that are easy to crack.</li>
+</ul>
+
+<p>Once an attacker has your password, they can impersonate you indefinitely—until you discover the breach and change it (if you even know it was compromised).</p>
+
+<p>The core problem: <strong>How do we create a credential that's valid only once, or only for a short period of time?</strong></p>
+
+<p>This is the foundation of multi-factor authentication (MFA). Even if someone steals your password, they can't use it without also having access to your second factor—something that changes frequently and can't be easily reused.</p>
+
+<p>So you start to think about coming up with a solution. You soon realize the system must have the following properties at the minimum:</p>
+
+<ol>
+<li><strong>Should be random</strong>: Each password must appear random and unpredictable to an observer. Even if someone sees one password, they shouldn't be able to predict the next one.</li>
+</ol>
+
+<ol>
+<li><strong>Cannot be guessed or brute forced</strong>: The password space must be large enough that an attacker can't feasibly try all possibilities within the valid time window. Additionally, the generation algorithm must be cryptographically secure.</li>
+</ol>
+
+<ol>
+<li><strong>Should be one-time use only</strong>: Once a password is used, it must become invalid. This prevents replay attacks where an attacker intercepts and reuses a password.</li>
+</ol>
+
+<ol>
+<li><strong>Inexpensive and ideally must work offline</strong>: The solution shouldn't require expensive infrastructure (like SMS gateways) or constant network connectivity. Users should be able to authenticate even when they're offline or in areas with poor connectivity.</li>
+</ol>
+
+<h2 id="the-one-time-password-otp">The One-Time Password (OTP)</h2>
+
+<p>Let's start with the simplest solution: <strong>one-time passwords</strong>.</p>
+
+<p>The idea is straightforward:</p>
+<ol>
+<li>Generate a random password</li>
+<li>Send it to the user (via SMS, email, etc.)</li>
+<li>The user enters it to authenticate</li>
+<li>Once used, it's invalid forever</li>
+</ol>
+
+<p>While this works, you soon realize this has several problems:</p>
+
+<ul>
+<li><strong>Problems:</strong></li>
+</ol>
+<ol>
+<li><strong>Requires communication</strong>: This requires communication with the user every time they want to log in. What if they're offline? What if SMS is delayed? What if they're in an area with no cell service?</li>
+<li><strong>Delivery cost via platform</strong>: Sending OTPs via SMS or email incurs costs. SMS gateways charge per message, and email services have costs at scale. These costs add up quickly, especially for high-traffic applications with frequent logins.</li>
+<li><strong>Server-side storage cost</strong>: The server must store each generated OTP until it's used or expires. This adds storage overhead and cost, especially at scale.</li>
+<li><strong>Invalidation complexity</strong>: If a new OTP is generated before the old one is used, the server must invalidate the previous one. This requires state management and can lead to race conditions or confusion if multiple OTPs are in flight.</li>
+<li><strong>Interception risk</strong>: Someone can eavesdrop on the network or could get access to your device.</li>
+</ol>
+
+<p>We need something that works <strong>offline</strong> and doesn't require a round-trip to a server, and doesn't require the server to store any OTP state.</p>
+
+<h2 id="exploring-solutions-generating-random-passwords-independently">Exploring Solutions: Generating Random Passwords Independently</h2>
+
+<p>You think of this hard and soon enough you land on the insight: <strong>What if both the server and the client could independently generate the same password?</strong></p>
+
+<p>The first thought would be to generate one-time use values that are synced between client and server independently, without requiring network communication. If both sides can arrive at the same value at the same time, we've solved the synchronization problem.</p>
+
+<h4 id="attempt-1-pre-generated-otp-lists">Attempt 1: Pre-generated OTP Lists</h4>
+
+<p>The most straightforward approach might be: <strong>store a list of OTPs on both the server and client</strong>.</p>
+
+<pre><code>Server stores: [123456, 789012, 345678, ...]
+Client stores: [123456, 789012, 345678, ...]
+
+User logs in → Client sends first OTP → Server checks if it matches first in list</code></pre>
+
+<ul>
+<li><strong>Pitfalls:</strong></li>
+<li><strong>Storage overhead</strong>: Both sides need to store potentially thousands of OTPs</li>
+<li><strong>Synchronization nightmare</strong>: What if the client uses OTP #5 but the server thinks we're on OTP #3? They're now permanently out of sync</li>
+<li><strong>Limited lifespan</strong>: Once you run out of pre-generated OTPs, you need to regenerate and sync the entire list again</li>
+<li><strong>Security risk</strong>: If either side is compromised, the attacker has access to all future OTPs</li>
+<li><strong>Multi-device problem</strong>: If a user has multiple devices, each needs its own list, or they need to stay perfectly synchronized</li>
+</ul>
+
+<p>This approach doesn't scale and introduces more problems than it solves.</p>
+
+<h4 id="attempt-2-random-numbers">Attempt 2: Random Numbers</h4>
+
+<p>First thought: <strong>What if we use random numbers?</strong></p>
+
+<pre><code>Client generates random: 42
+Server generates random: 42  ← Wait, how does this work?</code></pre>
+
+<ul>
+<li><strong>Problems:</strong></li>
+<li><strong>Synchronization impossible</strong>: How does the server know which random number the client generated? They're random!</li>
+<li><strong>No shared state</strong>: Random number generators on different devices produce different sequences</li>
+<li><strong>Requires communication</strong>: To sync random numbers, you'd need to communicate them, which defeats the purpose</li>
+<li><strong>Predictability concerns</strong>: If the random number generator is predictable, security is compromised</li>
+</ul>
+
+<p>Random numbers don't work because there's no way for both sides to independently arrive at the same random value.</p>
+
+<ul>
+<li><strong>What about Pseudo-Random Number Generation (PRNG)?</strong></li>
+</ul>
+
+<p>You might think: "What if we use a pseudo-random number generator with a seed? Both sides could use the same seed and get the same sequence!"</p>
+
+<pre><code>Both sides use seed = 12345
+PRNG(seed) → 42
+PRNG(seed) → 17
+PRNG(seed) → 99</code></pre>
+
+<ul>
+<li><strong>Problems with PRNG:</strong></li>
+</ul>
+
+<ol>
+<li><strong>Seed synchronization</strong>: How do both sides know to use the same seed? You'd need to communicate the seed, which brings back the communication problem.</li>
+</ol>
+
+<ol>
+<li><strong>State synchronization</strong>: PRNGs maintain internal state. If the client generates 5 numbers but only uses the 3rd one, the PRNG state on both sides is now different. They're out of sync.</li>
+</ol>
+
+<ol>
+<li><strong>Predictability</strong>: PRNGs are deterministic algorithms. If an attacker can observe a few outputs, they might be able to predict future values or reverse-engineer the seed. This is a serious security vulnerability.</li>
+</ol>
+
+<ol>
+<li><strong>Cryptographic weakness</strong>: Most PRNGs (like those used in programming languages) are not cryptographically secure. They're designed for statistical randomness, not security. An attacker could potentially predict the sequence.</li>
+</ol>
+
+<ol>
+<li><strong>Seed management</strong>: You'd need to securely share and manage seeds, which is essentially the same problem as sharing a secret key—but PRNGs are less secure than cryptographic hash functions.</li>
+</ol>
+
+<ol>
+<li><strong>No forward secrecy</strong>: Once the seed is compromised, all past and future values can be calculated. Unlike time-based systems where each time step is independent, PRNG sequences are linked.</li>
+</ol>
+
+<p>PRNGs don't solve the fundamental problem: <strong>you still need synchronized state, and they introduce additional security risks compared to cryptographic hash functions.</strong></p>
+
+<h4 id="attempt-3-sequential-counter">Attempt 3: Sequential Counter</h4>
+
+<p>Okay, random doesn't work. <strong>What if we use a sequential counter?</strong></p>
+
+<p>First, let's try using just the counter value itself as the password:</p>
+
+<pre><code>Both sides start at counter = 0
+Client increments: counter = 1, password = "1"
+Server increments: counter = 1, password = "1" ✓</code></pre>
+
+<ul>
+<li><strong>Problems with just counters:</strong></li>
+<li><strong>Predictable and sequential</strong>: The password is just the counter value. If someone sees password "5", they know the next one is "6". This is completely insecure.</li>
+<li><strong>No randomness</strong>: The passwords are sequential numbers, making them trivial to guess.</li>
+<li><strong>No cryptographic security</strong>: Anyone can predict future passwords just by knowing the pattern.</li>
+<li><strong>Synchronization drift</strong>: If the client generates 5 OTPs (counter goes 0→5) but only uses the 3rd one, the server's counter is now at 1, but the client's is at 5. They're out of sync forever.</li>
+<li><strong>Look-ahead complexity</strong>: The server needs to check multiple counter values (look-ahead window), but how many? What if the user generates 100 OTPs without using any?</li>
+<li><strong>Multi-device chaos</strong>: If a user has the app on their phone and tablet, each device has its own counter. Using an OTP from one device desynchronizes the other.</li>
+<li><strong>Replay window</strong>: Once you accept a counter value, how do you prevent it from being reused? You need to track which counters have been used, which brings back state management.</li>
+</ul>
+
+<p>Counters alone don't work because they're predictable and lack security. But wait—what if we combine counters with hashing?</p>
+
+<ul>
+<li><strong>The Hashing Solution:</strong></li>
+</ul>
+
+<p>So you think: <strong>How can one be generated at random, yet deterministically?</strong></p>
+
+<p>Being a brilliant engineer, you think: "If nothing works, throw hashing at the problem!"</p>
+
+<p>You know that for a given input, a hash function always produces the same value. This is deterministic. But if you just hash the same key over and over, you'd get the same password every time—essentially the same as a static password. That's not secure.</p>
+
+<p>Then the insight hits: <strong>What if we generate a sequence of values, and both the client and server hash the same value in the sequence?</strong> They would both arrive at the same hash result!</p>
+
+<p>But what should this sequence be? What values should we use?</p>
+
+<p>You realize: <strong>What if we hash the counter value with a secret key?</strong> This would make the output unpredictable while still being deterministic!</p>
+
+<pre><code>Both sides start at counter = 0
+Both sides know: secret_key = "my-secret-key"
+Client increments: counter = 1, hash(secret_key, 1) → "123456"
+Server increments: counter = 1, hash(secret_key, 1) → "123456" ✓</code></pre>
+
+<p>This seems promising! Both sides can maintain a counter and increment it, and the hash function ensures the output is random and unpredictable.</p>
+
+<h4 id="exploring-counter-based-approach-hotp">Exploring Counter-Based Approach (HOTP)</h4>
+
+<p>Before we move to time, let's explore the counter-based approach more deeply. This is the basis of <strong>HOTP (HMAC-based One-Time Password)</strong>.</p>
+
+<p>The idea is simple: each time we generate a password, we increment a counter. The password is generated from both the secret and the counter.</p>
+
+<pre><code>password = generate(secret_key, counter)</code></pre>
+
+<ul>
+<li><strong>How it works:</strong></li>
+</ol>
+<ol>
+<li>Server and client share a secret key</li>
+<li>Both maintain a counter (starting at 0)</li>
+<li>To authenticate, client generates: <code>HMAC-SHA1(secret, counter)</code></li>
+<li>Converts the HMAC result to a 6-digit number</li>
+<li>Server does the same calculation and compares</li>
+</ol>
+
+<ul>
+<li><strong>The HMAC function:</strong></li>
+<li>HMAC (Hash-based Message Authentication Code) ensures that even small changes to the input produce completely different outputs</li>
+<li>SHA-1 provides cryptographic security</li>
+<li>The result is deterministic: same inputs always produce same output</li>
+</ul>
+
+<ul>
+<li><strong>Counter-based Flow Diagram:</strong></li>
+</ul>
+
+<pre><code>┌────────────────────────────────────────────────────────────────┐
+│              HOTP Authentication Flow                          │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────┐                     ┌──────────┐                 │
+│  │  Client  │                     │  Server  │                 │
+│  └────┬─────┘                     └────┬─────┘                 │
+│       │                                │                       │
+│       │ Both sides maintain counter    │                       │
+│       │ (Initially synchronized)       │                       │
+│       │ Client counter: 3              │                       │
+│       │ Server counter: 3              │                       │
+│       │                                │                       │
+│       │ (Client generates 2 OTPs but   │                       │
+│       │  doesn't use them - drift!)    │                       │
+│       │ Client counter: 5              │                       │
+│       │ Server counter: 3              │                       │
+│       │                                │                       │
+│       │ 1. Client increments counter   │                       │
+│       │    counter = 5 + 1 = 6         │                       │
+│       │                                │                       │
+│       │ 2. Hash and generate 6 digit   │                       │
+│       │    number → "456789"           │                       │
+│       │                                │                       │
+│       │ 3. Display to user             │                       │
+│       │    "456789"                    │                       │
+│       │                                │                       │
+│       │ 4. User enters "456789" ──────&gt;│                       │
+│       │                                │                       │
+│       │                                │ 5. Server checks      │
+│       │                                │    counter 3, 4, 5,   │
+│       │                                │    6, 7 (look-ahead)  │
+│       │                                │                       │
+│       │                                │ 6. Finds match at     │
+│       │                                │    counter = 6        │
+│       │                                │    → "456789" ✓       │
+│       │                                │                       │
+│       │                                │ 7. Update server      │
+│       │                                │    counter to 6       │
+│       │                                │                       │
+│       │ 8. Authentication success &lt;────│                       │
+│       │                                │                       │
+│  ┌─────────────────────────────────────┴───────────────────────┤
+│  │                                                             │
+│  │ Problem: If client generates OTPs but doesn't use them,     │
+│  │          counters drift apart and sync is lost              │
+│  └─────────────────────────────────────────────────────────────┘</code></pre>
+
+<ul>
+<li><strong>Remaining problems (even with hashing):</strong></li>
+<li><strong>Synchronization drift</strong>: If the client generates 5 OTPs (counter goes 0→5) but only uses the 3rd one, the server's counter is now at 1, but the client's is at 5. They're out of sync forever.</li>
+<li><strong>Look-ahead complexity</strong>: The server needs to check multiple counter values (look-ahead window), but how many? What if the user generates 100 OTPs without using any?</li>
+<li><strong>Multi-device chaos</strong>: If a user has the app on their phone and tablet, each device has its own counter. Using an OTP from one device desynchronizes the other.</li>
+<li><strong>Replay window</strong>: Once you accept a counter value, how do you prevent it from being reused? You need to track which counters have been used, which brings back state management.</li>
+</ul>
+
+<p>Counters have the same fundamental problem: <strong>they require state synchronization</strong>.</p>
+
+<p>This is why we need a better solution—one that doesn't require maintaining synchronized counters.</p>
+
+<h4 id="the-light-bulb-moment-time">The Light Bulb Moment: Time</h4>
+
+<p>Then you think: <strong>What is something that is constantly changing, but both the client and server can independently arrive at the correct value?</strong></p>
+
+<ul>
+<li><strong>Time!</strong> Like Bilbo Baggins figured out: Time is the answer.</li>
+</ul>
+
+<p>Time is constantly changing, but both the client and server can independently ask "What time is it right now?" and get (approximately) the same answer. No synchronization needed. No state to maintain. No communication required.</p>
+
+<pre><code>Current time: 10:30:45
+Both sides hash: hash(secret, current_time) → "456789"</code></pre>
+
+<p>Time naturally provides the sequence we need, and it's automatically synchronized. However, we'll need to handle some practical issues with clock differences, which we'll explore later.</p>
+
+<h2 id="time-as-the-variable-totp">Time as the Variable (TOTP)</h2>
+
+<p>Here's the elegant solution: <strong>Use time instead of a counter!</strong></p>
+
+<p>Time is naturally synchronized (well, mostly—we'll handle clock skew). Both the server and client can independently calculate: "What time is it right now?" and use that as the variable.</p>
+
+<p>This is <strong>TOTP (Time-based One-Time Password)</strong>.</p>
+
+<ul>
+<li><strong>How it works:</strong></li>
+</ol>
+<ol>
+<li>Server and client share a secret key</li>
+<li>Both get the current time (Unix timestamp)</li>
+<li>Both calculate: <code>HMAC-SHA1(secret, current_time)</code>, then truncate to 6 digits</li>
+<li>Both arrive at the same password</li>
+</ol>
+
+<ul>
+<li><strong>Example:</strong></li>
+<pre><code>Current time: 2024-01-15 10:30:45 UTC
+Unix timestamp: 1705315845
+
+Both sides calculate:
+HMAC-SHA1(secret, 1705315845) = [0x3f, 0x8a, 0x2c, ...]
+(apply truncation algorithm)
+Password: 456789</code></pre>
+</ul>
+
+<p>Both the client and server independently calculate the same password from the same secret and current time. No communication needed!</p>
+
+<p>But wait—if we use the exact current time, the password changes every second! That's too frequent. Users need time to read and type the password. Also, we need passwords to expire after a reasonable period for security.</p>
+
+<p>And there's another issue: when the client generates an OTP and sends it to the server, some time would have elapsed. The generated value at the server might be slightly off due to clock differences or network delay. How do you handle this?</p>
+
+<h4 id="designing-the-algorithm">Designing the Algorithm</h4>
+
+<p>Now you tinker with how the algorithm should work. You need three core components:</p>
+
+<ol>
+<li><strong>Shared Secret Key Or Initial Handshake</strong>: A secret that only the server and client know. This is established once during setup (via QR code, manual entry, etc.) and stored securely on both sides.</li>
+</ol>
+
+<ol>
+<li><strong>Hash Function</strong>: A cryptographic hash function that takes the secret and a time-based value, producing a deterministic but unpredictable output. HMAC-SHA1 is perfect for this—it's designed exactly for this use case (Hash-based Message Authentication Code).</li>
+</ol>
+
+<ol>
+<li><strong>Verification Process</strong>:</li>
+</ul>
+<ul>
+<li>Client calculates: <code>HMAC(secret, time_value)</code> → truncate to 6 digits</li>
+<li>Server calculates: <code>HMAC(secret, time_value)</code> → truncate to 6 digits</li>
+<li>Compare: if they match, authentication succeeds</li>
+<li>Handle clock differences: we'll need a mechanism to account for small time differences (we'll explore this in the next section)</li>
+</ul>
+
+<h4 id="example-flow-diagram">Example Flow Diagram</h4>
+
+<p>Here's the complete flow from initial handshake to OTP use:</p>
+
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│              Phase 1: Initial Handshake (One Time)              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────┐                     ┌──────────┐                  │
+│  │  Client  │                     │  Server  │                  │
+│  └────┬─────┘                     └────┬─────┘                  │
+│       │                                │                        │
+│       │                                │ 1. Generate secret     │
+│       │                                │    secret_key =        │
+│       │                                │    "JBSWY3DPEHPK3PXP"  │
+│       │                                │                        │
+│       │                                │ 2. Store secret_key    │
+│       │                                │    securely in DB      │
+│       │                                │                        │
+│       │                                │ 3. Encode as QR code   │
+│       │                                │    or display for      │
+│       │                                │    manual entry        │
+│       │                                │                        │
+│       │ 4. User scans QR code or       │                        │
+│       │    manually enters secret      │                        │
+│       │                                │                        │
+│       │ 5. Store secret_key securely   │                        │
+│       │    on client device            │                        │
+│       │                                │                        │
+│       │ 6. Handshake complete ✓        │                        │
+│       │    Both sides now share        │                        │
+│       │    the same secret_key         │                        │
+│       │                                │                        │
+│       └────────────────────────────────┴─────────────────────┘  |
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│        Phase 2: OTP Generation (Client Side - Offline)      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────┐                                               │
+│  │  Client  │                                               │
+│  └────┬─────┘                                               │
+│       │                                                     │
+│       │ 1. User opens authenticator app                     │
+│       │                                                     │
+│       │ 2. App retrieves stored secret_key                  │
+│       │                                                     │
+│       │ 3. Get current Unix timestamp                       │
+│       │    current_time = 1705315845                        │
+│       │                                                     │
+│       │ 4. Calculate time step                              │
+│       │    T = current_time // 30                           │
+│       │    T = 56843861                                     │
+│       │                                                     │
+│       │ 5. Generate 6-digit OTP                             │
+│       │    OTP = "456789"                                   │
+│       │                                                     │
+│       │ 6. Display OTP to user                              │
+│       │    "456789" (valid for ~30 seconds)                 │
+│       │                                                     │
+│  └─────────────────────────────────────────────────────────┘|
+└─────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│     Phase 3: Authentication (User Login with OTP)             │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────┐                     ┌──────────┐                │
+│  │  Client  │                     │  Server  │                │
+│  └────┬─────┘                     └────┬─────┘                │
+│       │                                │                      │
+│       │ 1. User enters username        │                      │ 
+│       │    and password                │                      │
+│       │                                │                      │
+│       │ 2. User enters OTP from        │                      │
+│       │    authenticator app           │                      │
+│       │    OTP = "456789"              │                      │
+│       │                                │                      │
+│       │ 3. Send login request ────────&gt;│                      │
+│       │    (username, password, OTP)   │                      │
+│       │                                │                      │
+│       │                                │ 4. Verify username   │
+│       │                                │    and password      │
+│       │                                │                      │
+│       │                                │ 5. Retrieve user's   │
+│       │                                │    secret_key from   │
+│       │                                │    database          │
+│       │                                │                      │
+│       │                                │ 6. Get current time  │
+│       │                                │    current_time =    │
+│       │                                │    1705315845        │
+│       │                                │                      │
+│       │                                │ 7. Calculate time    │
+│       │                                │    step T            │
+│       │                                │    T = 56843861      │
+│       │                                │                      │
+│       │                                │ 8. Check time window │
+│       │                                │    (T-1, T, T+1)     │
+│       │                                │    to handle clock   │
+│       │                                │    skew              │
+│       │                                │                      │
+│       │                                │ 9. For each T in     │
+│       │                                │    window:           │
+│       │                                │    - Calculate HMAC  │
+│       │                                │    - Convert to 6    │
+│       │                                │      digits          │
+│       │                                │    - Compare with    │
+│       │                                │      user's OTP      │
+│       │                                │                      │
+│       │                                │ 10. Match found! ✓   │
+│       │                                │     OTP is valid     │
+│       │                                │                      │
+│       │ 11. Authentication success &lt;───│                      │
+│       │     User logged in             │                      │
+│       │                                │                      │
+│       └────────────────────────────────┴──────────────────────┤
+│                                                               │
+│  Note: OTP expires after time step (30 seconds). Server       │
+│        accepts OTPs from T-1, T, and T+1 to handle clock      │
+│        skew and network delays.                               │
+└───────────────────────────────────────────────────────────────┘</code></pre>
+
+<h2 id="handling-clock-skew-and-time-steps">Handling Clock Skew and Time Steps</h2>
+
+<p>You realize there are two problems to solve:</p>
+<ol>
+<li>The password changes too frequently (every second)</li>
+<li>Time differences between client and server, plus network delays</li>
+</ol>
+
+<ul>
+<li><strong>The Time Step Solution:</strong></li>
+</ul>
+
+<p>You realize: <strong>What if we divide time into steps?</strong> Instead of using the exact current time, we divide time into intervals (time steps). The password stays the same for the duration of each step, then changes to a new value.</p>
+
+<p>For example, with a 30-second time step:</p>
+<ul>
+<li>From 10:30:00 to 10:30:29 → same password</li>
+<li>From 10:30:30 to 10:30:59 → new password</li>
+<li>From 10:31:00 to 10:31:29 → another new password</li>
+</ul>
+
+<p>This gives users enough time to read and enter the password, while still keeping it secure with regular expiration.</p>
+
+<ul>
+<li><strong>Why 30 seconds?</strong></li>
+<li>Short enough to be secure (password expires quickly)</li>
+<li>Long enough for users to type it in comfortably</li>
+<li>Balances security and usability</li>
+</ul>
+
+<ul>
+<li><strong>The Algorithm with Time Steps:</strong></li>
+</ul>
+
+<p>Now the algorithm becomes:</p>
+<ol>
+<li>Server and client share a secret key</li>
+<li>Both calculate the current time step: <code>T = floor((current_time - T0) / X)</code></li>
+</ul>
+<ul>
+<li><code>T0</code> is the Unix epoch (January 1, 1970, 00:00:00 UTC)</li>
+<li><code>X</code> is the time step (typically 30 seconds)</li>
+</ol>
+<ol>
+<li>Generate password: <code>HMAC-SHA1(secret, T)</code>, then truncate to 6 digits</li>
+<li>The password is valid for the duration of the time step</li>
+</ol>
+
+<ul>
+<li><strong>Example:</strong></li>
+<pre><code>Current time: 2024-01-15 10:30:45 UTC
+Unix timestamp: 1705315845
+Time step (X): 30 seconds
+T0: 0 (Unix epoch)
+
+T = floor((1705315845 - 0) / 30) = 56843861
+
+HMAC-SHA1(secret, 56843861) = [0x3f, 0x8a, 0x2c, ...]
+(apply truncation algorithm)
+Password: 456789</code></pre>
+</ul>
+
+<p>This password is valid from 10:30:30 to 10:31:00.</p>
+
+<ul>
+<li><strong>But there's still the second problem: time differences and network delays</strong></li>
+</ul>
+
+<ul>
+<li><strong>Clock skew</strong>: The client's clock and server's clock might not be perfectly synchronized. One might be a few seconds ahead or behind.</li>
+</ul>
+
+<ul>
+<li><strong>Network delay</strong>: When the client generates the OTP, it's based on the client's current time. But by the time the server receives and verifies it, some time has passed. If we're at the boundary of a time step, this could cause a mismatch.</li>
+</ul>
+
+<p>So you think: how would you handle this? Clearly there would be some sync delay. The time step helps, but we need an additional mechanism.</p>
+
+<ul>
+<li><strong>Solution: Add a buffer window option.</strong></li>
+</ul>
+
+<p>Instead of only accepting the exact current time step, accept a small window around it. This accounts for:</p>
+<ul>
+<li>Clock skew between client and server</li>
+<li>Network transmission delay</li>
+<li>Processing time</li>
+</ul>
+
+<p>Instead of only accepting the current time step (<code>T</code>), accept:</p>
+<ul>
+<li>Previous time step (<code>T-1</code>) - in case client clock is slightly behind or there's network delay</li>
+<li>Current time step (<code>T</code>) - the ideal case</li>
+<li>Next time step (<code>T+1</code>) - in case client clock is slightly ahead</li>
+</ul>
+
+<p>This gives us a buffer window that handles typical clock skew and network delays while maintaining security. The window size is configurable—typically ±1 time step, which with a 30-second time step gives us a 90-second acceptance window (3 × 30 seconds).</p>
+
+<p>Now the verification process becomes:</p>
+<ul>
+<li>Client calculates: <code>HMAC(secret, current_time_step)</code> → truncate to 6 digits</li>
+<li>Server calculates: <code>HMAC(secret, current_time_step)</code> → truncate to 6 digits</li>
+<li>Server also checks adjacent time steps (T-1, T, T+1) to handle clock skew</li>
+<li>Compare: if any match, authentication succeeds</li>
+</ul>
+
+<h5 id="making-it-flexible">Making It Flexible</h5>
+
+<p>Being a great engineer, you decide to make things flexible. What if different people need different algorithms or different digit lengths?</p>
+
+<ul>
+<li><strong>Configurable parameters:</strong></li>
+<li><strong>Hash algorithm</strong>: HMAC-SHA1 (default), but could support HMAC-SHA256, HMAC-SHA512 for stronger security</li>
+<li><strong>Digit length</strong>: 6 digits (default), but could be 4, 6, 7, or 8 digits depending on security vs. usability trade-offs</li>
+<li><strong>Time step</strong>: 30 seconds (default), but could be 15, 30, or 60 seconds</li>
+<li><strong>Clock skew window</strong>: ±1 time step (default), but adjustable based on expected clock accuracy</li>
+</ul>
+
+<p>This flexibility allows the system to adapt to different security requirements and use cases.</p>
+
+<h2 id="the-complete-algorithm">The Complete Algorithm</h2>
+
+<p>Here's the complete TOTP algorithm:</p>
+
+<pre><code>import hmac
+import hashlib
+import time
+import struct
+
+def convert_to_digits(hmac_result, digits=6):
+    """
+    Convert HMAC result to a specified number of digits.
+    
+    Args:
+        hmac_result: HMAC digest (bytes)
+        digits: Number of digits desired (default 6)
+    
+    Returns:
+        OTP as string with specified number of digits
+    """
+    # Dynamic truncation algorithm
+    offset = hmac_result[-1] &amp; 0x0F  # Last 4 bits
+    binary = struct.unpack('&gt;I', hmac_result[offset:offset+4])[0]
+    binary = binary &amp; 0x7FFFFFFF  # Mask MSB
+    
+    # Convert to digits
+    otp = binary % (10 ** digits)
+    
+    return str(otp).zfill(digits)
+
+def generate_totp(secret_key, time_step=30, digits=6):
+    """
+    Generate a TOTP password.
+    
+    Args:
+        secret_key: Shared secret (bytes)
+        time_step: Time step in seconds (default 30)
+        digits: Number of digits in password (default 6)
+    
+    Returns:
+        TOTP password as string
+    """
+    # Calculate current time step
+    current_time = int(time.time())
+    T = current_time // time_step
+    
+    # Convert T to bytes (8 bytes, big-endian)
+    T_bytes = struct.pack('&gt;Q', T)
+    
+    # Calculate HMAC-SHA1
+    hmac_result = hmac.new(secret_key, T_bytes, hashlib.sha1).digest()
+    
+    # Convert to digits
+    return convert_to_digits(hmac_result, digits)
+
+def verify_totp(secret_key, user_input, time_step=30, digits=6, window=1):
+    """
+    Verify a TOTP password with clock skew tolerance.
+    
+    Args:
+        secret_key: Shared secret (bytes)
+        user_input: Password entered by user
+        time_step: Time step in seconds (default 30)
+        digits: Number of digits in password (default 6)
+        window: Number of time steps to check on each side (default 1)
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    current_time = int(time.time())
+    current_T = current_time // time_step
+    
+    # Check current time step and window around it
+    for i in range(-window, window + 1):
+        T = current_T + i
+        T_bytes = struct.pack('&gt;Q', T)
+        hmac_result = hmac.new(secret_key, T_bytes, hashlib.sha1).digest()
+        
+        otp = convert_to_digits(hmac_result, digits)
+        
+        if otp == user_input:
+            return True
+    
+    return False</code></pre>
+
+<h2 id="why-this-design-works">Why This Design Works</h2>
+
+<ol>
+<li><strong>Offline capability</strong>: No network communication needed after initial secret sharing</li>
+<li><strong>Time synchronization</strong>: Uses time, which is naturally synchronized (with skew tolerance)</li>
+<li><strong>Cryptographic security</strong>: HMAC-SHA1 ensures passwords can't be predicted or reverse-engineered</li>
+<li><strong>Short validity window</strong>: 30-second expiration limits attack window</li>
+<li><strong>Simple for users</strong>: Just 6 digits to type</li>
+<li><strong>Deterministic</strong>: Same inputs always produce same output (critical for verification)</li>
+</ol>
+
+<h2 id="downsides-and-implementation-considerations">Downsides and Implementation Considerations</h2>
+
+<p>While TOTP is elegant, it's not without its challenges. Let's explore the downsides and important implementation details.</p>
+
+<h3 id="downsides-of-totp">Downsides of TOTP</h3>
+
+<ol>
+<li><strong>Clock synchronization dependency</strong>: TOTP relies on both client and server having reasonably synchronized clocks. If a device's clock is significantly off (hours or days), TOTP won't work. Users must ensure their device time is set correctly.</li>
+</ol>
+
+<ol>
+<li><strong>Single point of failure</strong>: If the secret key is compromised on either the client or server side, the entire security mechanism is broken. An attacker with the secret can generate valid OTPs indefinitely.</li>
+</ol>
+
+<ol>
+<li><strong>No revocation mechanism</strong>: Once a secret is shared, there's no built-in way to revoke it without user intervention. If a device is lost or compromised, the user must manually disable TOTP and re-enroll.</li>
+</ol>
+
+<ol>
+<li><strong>Limited to 6-8 digits</strong>: The typical 6-digit OTP provides 1 million possible values. While the time window limits brute force attacks, it's still a relatively small search space compared to longer passwords.</li>
+</ol>
+
+<ol>
+<li><strong>User experience friction</strong>: Users must have their authenticator device available and working. If the device is lost, broken, or the battery is dead, they can't authenticate.</li>
+</ol>
+
+<ol>
+<li><strong>Backup and recovery complexity</strong>: If users lose access to their authenticator app, recovery can be difficult. Services typically provide backup codes, but these must be stored securely by users.</li>
+</ol>
+
+<h3 id="how-the-server-should-store-secrets">How the Server Should Store Secrets</h3>
+
+<p>The security of TOTP depends critically on how the server stores the secret keys. Here are the best practices:</p>
+
+<ul>
+<li><strong>1. Encryption at Rest:</strong></li>
+<li>Secrets should <strong>never</strong> be stored in plaintext in the database</li>
+<li>Use strong encryption (AES-256) to encrypt secrets before storing them</li>
+<li>Store encryption keys separately from the database (use a key management service or hardware security module)</li>
+</ul>
+
+<ul>
+<li><strong>2. Secure Storage:</strong></li>
+<pre><code>❌ Bad: Storing plaintext
+Database: user_id=123, totp_secret="JBSWY3DPEHPK3PXP"
+
+✅ Good: Encrypted storage
+Database: user_id=123, totp_secret_encrypted="aGVsbG8gd29ybGQ="
+Encryption key: Stored in secure key management service</code></pre>
+</ul>
+
+<ul>
+<li><strong>3. Access Control:</strong></li>
+<li>Limit database access to only necessary services</li>
+<li>Use principle of least privilege</li>
+<li>Log all access to secret data for audit purposes</li>
+<li>Implement database-level encryption and access controls</li>
+</ul>
+
+<ul>
+<li><strong>4. Key Management:</strong></li>
+<li>Use a dedicated key management service (AWS KMS, Azure Key Vault, HashiCorp Vault)</li>
+<li>Rotate encryption keys periodically</li>
+<li>Never hardcode encryption keys in application code</li>
+<li>Use environment variables or secure configuration management</li>
+</ul>
+
+<ul>
+<li><strong>5. Secure Transmission:</strong></li>
+<li>When sharing the secret initially (via QR code or manual entry), ensure the connection is encrypted (HTTPS)</li>
+<li>Never send secrets via email or SMS in plaintext</li>
+<li>Use secure channels for all secret transmission</li>
+</ul>
+
+<ul>
+<li><strong>6. Backup and Recovery:</strong></li>
+<li>Encrypt backups of the database</li>
+<li>Store backup encryption keys separately</li>
+<li>Test recovery procedures regularly</li>
+<li>Consider using database replication with encryption</li>
+</ul>
+
+<ul>
+<li><strong>Example Secure Storage Pattern:</strong></li>
+<pre><code># Server-side secret storage (pseudocode)
+def store_totp_secret(user_id, secret):
+    # Encrypt the secret using a key from key management service
+    encryption_key = get_key_from_kms()
+    encrypted_secret = encrypt(secret, encryption_key)
+    
+    # Store encrypted secret in database
+    database.store(user_id, encrypted_secret)
+    
+    # Never log the plaintext secret
+    log.info(f"Stored encrypted TOTP secret for user {user_id}")
+
+def retrieve_totp_secret(user_id):
+    # Retrieve encrypted secret from database
+    encrypted_secret = database.retrieve(user_id)
+    
+    # Decrypt using key from key management service
+    encryption_key = get_key_from_kms()
+    secret = decrypt(encrypted_secret, encryption_key)
+    
+    return secret</code></pre>
+</ul>
+
+<ul>
+<li><strong>7. Compliance Considerations:</strong></li>
+<li>Follow industry standards (PCI DSS, GDPR, HIPAA) for sensitive data storage</li>
+<li>Implement proper data retention and deletion policies</li>
+<li>Ensure secrets are properly destroyed when no longer needed</li>
+<li>Maintain audit logs for compliance</li>
+</ul>
+
+<p>Remember: <strong>The security of TOTP is only as strong as the security of the secret storage mechanism.</strong> A compromised database with plaintext secrets renders the entire TOTP system useless.</p>
+
+<h2 id="security-considerations">Security Considerations</h2>
+
+<ol>
+<li><strong>Secret key protection</strong>: The secret must be stored securely on both ends</li>
+<li><strong>Replay attacks</strong>: Prevented by short time window</li>
+<li><strong>Brute force</strong>: 6 digits = 1 million possibilities, but 30-second window makes brute force impractical</li>
+<li><strong>Clock skew</strong>: Handled by acceptance window</li>
+<li><strong>Secret sharing</strong>: Initial secret must be shared securely (QR code, manual entry, etc.)</li>
+</ol>
+
+<h2 id="the-evolution">The Evolution</h2>
+
+<p>We've journeyed from:</p>
+<ul>
+<li><strong>Static passwords</strong> → Reusable, vulnerable</li>
+<li><strong>One-time passwords via communication</strong> → Secure but requires connectivity</li>
+<li><strong>HOTP (counter-based)</strong> → Offline but synchronization issues</li>
+<li><strong>TOTP (time-based)</strong> → Offline, naturally synchronized, elegant solution</li>
+</ul>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>TOTP is a beautiful example of solving a complex security problem with elegant simplicity. By using time as a naturally synchronized variable, we've created a system that:</p>
+<ul>
+<li>Works offline</li>
+<li>Is easy for users</li>
+<li>Provides strong security</li>
+<li>Requires minimal infrastructure</li>
+</ul>
+
+<p>The next time you use Google Authenticator, Authy, or any TOTP app, you're witnessing this elegant solution in action. A shared secret, the current time, and a cryptographic hash function—that's all it takes to create a secure, one-time password system.</p>
+
+<hr>
+
+<ul>
+<li>This blog post walked through the thought process of reinventing TOTP from first principles. The actual TOTP standard (RFC 6238) builds on HOTP (RFC 4226) and includes additional considerations for implementation, but the core concepts remain the same.*</li>
+</ul>
+
+<ul>
+<li><strong>Note:</strong> We've intentionally skipped some complexities and simplified certain aspects of the solution to make it easier to understand the core concepts. Real-world implementations include additional considerations such as proper secret encoding (Base32), more sophisticated truncation algorithms, support for different hash algorithms, and various edge cases in clock synchronization. However, the fundamental principles and thought process outlined here remain the foundation of how TOTP works.</li>
+</ul>
+
+
+</body>
+</html>
