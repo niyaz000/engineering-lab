@@ -1,183 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AWS VPC Networking: Full Request Journey</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --text-primary: rgba(0, 0, 0, 0.84);
-            --text-secondary: rgba(0, 0, 0, 0.68);
-            --text-muted: rgba(0, 0, 0, 0.54);
-            --bg-primary: #ffffff;
-            --bg-secondary: #fafafa;
-            --border-color: rgba(0, 0, 0, 0.15);
-        }
-
-        body {
-            font-family: "Charter", "Georgia", "Palatino", "Times New Roman", serif;
-            line-height: 1.68;
-            color: var(--text-primary);
-            max-width: 740px;
-            margin: 0 auto;
-            padding: 80px 20px;
-            background: var(--bg-primary);
-        }
-
-        #back {
-            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
-            font-size: 14px;
-            color: var(--text-muted);
-            text-decoration: none;
-            display: inline-block;
-            margin-bottom: 48px;
-            letter-spacing: 0.01em;
-        }
-        #back:hover { color: var(--text-primary); }
-
-        #content h1 {
-            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
-            font-size: 42px;
-            font-weight: 700;
-            line-height: 1.2;
-            letter-spacing: -0.022em;
-            margin-bottom: 24px;
-        }
-
-        #content h2 {
-            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
-            font-size: 26px;
-            font-weight: 600;
-            letter-spacing: -0.016em;
-            margin: 48px 0 16px;
-        }
-
-        #content h3 {
-            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
-            font-size: 20px;
-            font-weight: 600;
-            margin: 32px 0 12px;
-        }
-
-        #content p {
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-
-        #content blockquote {
-            border-left: 3px solid var(--text-primary);
-            margin: 32px 0;
-            padding: 4px 0 4px 24px;
-            font-style: italic;
-            font-size: 20px;
-            color: var(--text-secondary);
-        }
-
-        #content pre {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 20px 24px;
-            overflow-x: auto;
-            margin: 24px 0;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        #content code {
-            font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
-        }
-
-        #content p code, #content li code {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 3px;
-            padding: 1px 5px;
-            font-size: 15px;
-        }
-
-        #content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 24px 0;
-            font-size: 15px;
-        }
-
-        #content th {
-            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
-            font-weight: 600;
-            text-align: left;
-            padding: 10px 14px;
-            border-bottom: 2px solid var(--text-primary);
-            color: var(--text-primary);
-        }
-
-        #content td {
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-        }
-
-        #content tr:last-child td {
-            border-bottom: none;
-        }
-
-        #content ul, #content ol {
-            padding-left: 28px;
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-
-        #content li {
-            margin-bottom: 6px;
-        }
-
-        #content hr {
-            border: none;
-            border-top: 1px solid var(--border-color);
-            margin: 48px 0;
-        }
-
-        footer {
-            margin-top: 80px;
-            padding-top: 30px;
-            border-top: 1px solid var(--border-color);
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 14px;
-            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
-        }
-
-        @media (max-width: 768px) {
-            body { padding: 40px 20px; }
-            #content h1 { font-size: 30px; }
-            #content pre { font-size: 11px; padding: 14px 16px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<title>AWS VPC Networking: Full Request Journey</title>
+<style>
+  body {
+    font-family: Georgia, serif;
+    font-size: 18px;
+    line-height: 1.7;
+    max-width: 740px;
+    margin: 60px auto;
+    padding: 0 20px;
+    color: #1a1a1a;
+  }
+  h1 { font-size: 40px; line-height: 1.2; margin-bottom: 20px; }
+  h2 { font-size: 26px; margin-top: 48px; margin-bottom: 16px; }
+  blockquote {
+    border-left: 3px solid #aaa;
+    margin: 28px 0;
+    padding: 4px 0 4px 20px;
+    font-style: italic;
+    color: #555;
+    font-size: 20px;
+  }
+  p { margin-bottom: 18px; }
+  pre {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+  p code, li code, td code {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 15px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 15px;
+  }
+  th {
+    text-align: left;
+    padding: 9px 14px;
+    border-bottom: 2px solid #1a1a1a;
+    font-family: Arial, sans-serif;
+    font-weight: 600;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 44px 0; }
+</style>
 </head>
 <body>
-    <a href="../" id="back">← Engineering Lab</a>
-    <div id="content">Loading…</div>
-    <footer>Built with simplicity and attention to detail</footer>
 
-    <script>
-        fetch('vpc-networking-flow.md')
-            .then(r => r.text())
-            .then(md => {
-                document.getElementById('content').innerHTML = marked.parse(md);
-                const h1 = document.querySelector('#content h1');
-                if (h1) document.title = h1.textContent;
-            })
-            .catch(() => {
-                document.getElementById('content').textContent = 'Failed to load article.';
-            });
-    </script>
+<h1>AWS VPC Networking: Full Request Journey</h1>
+
+<blockquote><em>You can outsource your thinking but not your understanding.</em></blockquote>
+
+<p>A packet-level trace of a typical web service deployed on AWS — from DNS resolution through load balancer, private subnet, database, and back out to an external API. No theory, just the path.</p>
+
+<p>Diagrams show the request direction. Responses retrace the same path — Security Groups handle this automatically (stateful), NACLs require explicit return rules (stateless).</p>
+
+<hr>
+
+<h2>Acronyms</h2>
+
+<table>
+  <thead>
+    <tr><th>Acronym</th><th>Full Form</th><th>What it means</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>VPC</td><td>Virtual Private Cloud</td><td>Your isolated private network inside AWS</td></tr>
+    <tr><td>IGW</td><td>Internet Gateway</td><td>Connects the VPC to the public internet</td></tr>
+    <tr><td>NAT</td><td>Network Address Translation</td><td>Rewrites IP addresses as packets cross a boundary</td></tr>
+    <tr><td>SNAT</td><td>Source NAT</td><td>Specifically replaces the <em>source</em> IP — what NAT GW does to hide your EC2's private IP</td></tr>
+    <tr><td>NACL</td><td>Network Access Control List</td><td>Stateless firewall rules applied at the subnet boundary</td></tr>
+    <tr><td>SG</td><td>Security Group</td><td>Stateful firewall rules applied to a specific resource</td></tr>
+    <tr><td>ALB</td><td>Application Load Balancer</td><td>Layer 7 load balancer — routes HTTP/S traffic to targets</td></tr>
+    <tr><td>TG</td><td>Target Group</td><td>The set of EC2s the ALB forwards traffic to</td></tr>
+    <tr><td>EC2</td><td>Elastic Compute Cloud</td><td>A virtual machine (your app server)</td></tr>
+    <tr><td>RDS</td><td>Relational Database Service</td><td>AWS managed relational database (Postgres, MySQL, etc.)</td></tr>
+    <tr><td>EIP</td><td>Elastic IP</td><td>A static public IP address you own in AWS</td></tr>
+    <tr><td>CIDR</td><td>Classless Inter-Domain Routing</td><td>IP range notation — <code>10.0.0.0/16</code> means 65,536 addresses</td></tr>
+    <tr><td>DNS</td><td>Domain Name System</td><td>Translates <code>api.hookly.com</code> to an IP address</td></tr>
+    <tr><td>TLS</td><td>Transport Layer Security</td><td>Encryption protocol behind HTTPS</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Key Players</h2>
+
+<table>
+  <thead>
+    <tr><th>Concept</th><th>What it does</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Security Group</strong></td>
+      <td>Firewall on a resource. <strong>Stateful</strong> — allow inbound <code>:443</code> and the response packet is automatically allowed out. No extra outbound rule needed.</td>
+    </tr>
+    <tr>
+      <td><strong>NACL</strong></td>
+      <td>Firewall at the subnet boundary. <strong>Stateless</strong> — allow inbound <code>:443</code> and you must <em>also</em> explicitly allow outbound <code>:1024–65535</code> (ephemeral ports) or the response is dropped. Rules are evaluated <strong>in order by rule number</strong> — first match wins, so rule ordering matters.</td>
+    </tr>
+    <tr>
+      <td><strong>Route Table</strong></td>
+      <td>Decides where a packet goes next (IGW, NAT GW, or stays local). Uses <strong>longest prefix match</strong> — most specific route wins. <code>10.0.2.0/24</code> beats <code>0.0.0.0/0</code> for traffic to <code>10.0.2.15</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Internet Gateway</strong></td>
+      <td>The door between your VPC and the public internet</td>
+    </tr>
+    <tr>
+      <td><strong>NAT Gateway</strong></td>
+      <td>Lets private resources reach the internet without being reachable from it</td>
+    </tr>
+    <tr>
+      <td><strong>ALB</strong></td>
+      <td>Receives incoming traffic and forwards it to a healthy target (your EC2)</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Service Diagram</h2>
+
+<pre>
+                                          ┌─────────────────────┐
+                                    ┌───► │  RDS  (Postgres)    │
+                                    │     └─────────────────────┘
+┌──────────┐     ┌──────────┐     ┌───┴──────────┐
+│  Client  │────►│    LB    │────►│  App Server  │
+└──────────┘     └──────────┘     └───┬──────────┘
+                                      │
+                                      ▼
+                                ┌─────────────────────┐
+                                │  External Service   │
+                                │  (api.stripe.com)   │
+                                └─────────────────────┘
+</pre>
+
+<h2>Reference Values</h2>
+
+<table>
+  <thead>
+    <tr><th>Resource</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Client</td><td><code>203.0.113.5</code></td></tr>
+    <tr><td>Domain</td><td><code>api.hookly.com</code> → <code>54.23.145.67</code></td></tr>
+    <tr><td>VPC CIDR</td><td><code>10.0.0.0/16</code></td></tr>
+    <tr><td>Public Subnet</td><td><code>10.0.1.0/24</code></td></tr>
+    <tr><td>Private Subnet</td><td><code>10.0.2.0/24</code></td></tr>
+    <tr><td>ALB</td><td><code>54.23.145.67:443</code></td></tr>
+    <tr><td>NAT Gateway</td><td><code>10.0.1.100</code> / EIP <code>52.14.88.12</code></td></tr>
+    <tr><td>EC2 Web Server</td><td><code>10.0.2.15:8080</code></td></tr>
+    <tr><td>RDS Postgres</td><td><code>10.0.2.50:5432</code></td></tr>
+    <tr><td>External Service</td><td><code>api.stripe.com</code></td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Architecture Overview</h2>
+
+<pre>
+               ┌─────────────── INTERNET ────────────────────────────┐
+               │  Client 203.0.113.5           api.stripe.com        │
+               └──────────┬─────────────────────────────▲────────────┘
+                          │                             │
+               ┌──────────▼───────────────────────────────────────────┐
+               │              Internet Gateway (IGW)                  │
+               └──────────┬───────────────────────────▲───────────────┘
+                          │                           │
+┌─────────────────────────▼───────────────────────────┼──────────────────┐
+│ VPC 10.0.0.0/16                                     │                  │
+│                                                     │                  │
+│  ┌──── Public Subnet 10.0.1.0/24 ───────────────────┴──────────────┐   │
+│  │                        │                                        │   │
+│  │                        ▼                                        │   │
+│  │   ┌────────────────────┐         ┌────────────────────────────┐ │   │
+│  │   │ ALB                │         │ NAT Gateway                │ │   │
+│  │   │ 54.23.145.67:443   │         │ 10.0.1.100                 │ │   │
+│  │   │ SG: 0.0.0.0/0:443  │         │ EIP: 52.14.88.12           │ │   │
+│  │   └────────┬───────────┘         └────────────────────────────┘ │   │
+│  └────────────┼───────────────────────────────────────▲────────────┘   │
+│               │ :8080                                 │                │
+│               ▼                                       │                │
+│  ┌──── Private Subnet 10.0.2.0/24 ───────────────────────────────┐     │
+│  │               │                                   │           │     │
+│  │   ┌───────────▼──────────────────┐                │           │     │
+│  │   │ EC2  10.0.2.15:8080          │   outbound ────┘           │     │
+│  │   │ SG in: ALB-SG → :8080        │                            │     │
+│  │   └───────────┬──────────────────┘                            │     │
+│  │               │ :5432                                         │     │
+│  │   ┌───────────▼──────────────────┐                            │     │
+│  │   │ RDS  10.0.2.50:5432          │                            │     │
+│  │   │ SG in: EC2-SG → :5432        │                            │     │
+│  │   └──────────────────────────────┘                            │     │
+│  └───────────────────────────────────────────────────────────────┘     │
+└────────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<hr>
+
+<h2>Inbound Flow — <code>203.0.113.5 → api.hookly.com</code></h2>
+
+<pre>
+┌────────────────────────────────────────────────────────────────────────────┐
+│  INTERNET                                                                  │
+│                                                                            │
+│  ① Client  203.0.113.5                                                    │
+│       DNS:  api.hookly.com  ──►  54.23.145.67   (ALB public IP)            │
+│       TCP SYN  ──►  54.23.145.67:443                                       │
+└─────────────────────────────┬──────────────────────────────────────────────┘
+                              │ ② HTTPS :443
+┌─────────────────────────────▼─────────────────────────────────────────────┐
+│  Internet Gateway (IGW)                                                   │
+└─────────────────────────────┬─────────────────────────────────────────────┘
+                              │ ③ routes to VPC
+┌── Public Subnet 10.0.1.0/24 ▼───────────────────────────────────────────────┐
+│                                                                             │
+│  ④ NACL  (stateless — both directions must be explicitly allowed)          │
+│       in:  TCP :443  from 0.0.0.0/0              ✓  rule 100                │
+│       out: TCP :1024-65535  to 0.0.0.0/0         ✓  ephemeral ports         │
+│                                                                             │
+│  ⑤ Route Table                                                             │
+│       0.0.0.0/0    ──►  igw-0a1b2c3d   (internet traffic exits via IGW)     │
+│       10.0.0.0/16  ──►  local                                               │
+│                                                                             │
+│  ⑥ ALB  54.23.145.67                                                       │
+│       SG in:  TCP :443  src 0.0.0.0/0      ✓                                │
+│       SG in:  TCP :80   src 0.0.0.0/0      ✓  (redirect → HTTPS)            │
+│       SG out: all                          ✓                               │
+│       Listener :443  ──►  Target Group  ──►  10.0.2.15:8080                 │
+│                                                                             │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │ ⑦ ALB forwards to target group :8080
+┌── Private Subnet 10.0.2.0/24 ▼────────────────────────────────────────────────┐
+│                                                                               │
+│  ⑧ NACL  (stateless)                                                         │
+│       in:  TCP :8080  from 10.0.1.0/24       ✓  (only from public subnet)     │
+│       out: TCP :1024-65535  to 10.0.1.0/24   ✓  (ephemeral return traffic)    │
+│                                                                               │
+│  ⑨ Route Table                                                               │
+│       10.0.0.0/16  ──►  local                                                 │
+│       0.0.0.0/0    ──►  nat-0x1y2z3w          (outbound internet via NAT)     │
+│                                                                               │
+│  ⑩ EC2  10.0.2.15:8080                                                       │
+│       SG in:  TCP :8080  src sg-alb       ✓  (SG ref — only ALB can reach)    │
+│       SG out: all                         ✓                                   │
+│              │                                                                │
+│              │ ⑪ :5432  (stays within private subnet, SG enforced)           │
+│              ▼                                                                │
+│       RDS  10.0.2.50:5432                                                     │
+│            SG in:  TCP :5432  src sg-ec2  ✓  (SG ref — only EC2 can reach)    │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<hr>
+
+<h2>Outbound Flow — <code>EC2 → api.stripe.com</code></h2>
+
+<blockquote>EC2 is in a <strong>private subnet</strong> — no public IP, no direct internet access. All outbound internet traffic routes through NAT Gateway in the public subnet.</blockquote>
+
+<pre>
+┌── Private Subnet 10.0.2.0/24 ───────────────────────────────────────────────────┐
+│                                                                                 │
+│  ⑫ EC2  10.0.2.15  calls  api.stripe.com                                        │
+│       Route Table:  0.0.0.0/0  ──►  NAT GW (nat-0x1y2z3w)                       │
+│                                                                                 │
+└──────────────────────────────────────┬──────────────────────────────────────────┘
+                                       │ ⑬
+┌── Public Subnet 10.0.1.0/24 ─────────▼──────────────────────────────────────────┐
+│                                                                                 │
+│  ⑭ NAT Gateway  10.0.1.100                                                     │
+│       SNAT:  src 10.0.2.15  ──►  EIP 52.14.88.12                                │
+│                                                                                 │
+│       Stripe sees the request from 52.14.88.12, not the private EC2 IP.         │
+│       Response returns:  api.stripe.com → IGW → NAT GW → EC2 10.0.2.15          │
+│                                                                                 │
+└──────────────────────────────────────┬──────────────────────────────────────────┘
+                                       │ ⑮
+┌──────────────────────────────────────▼─────────────────────────────────────────┐
+│  Internet Gateway (IGW)                                                        │
+└──────────────────────────────────────┬─────────────────────────────────────────┘
+                                       │ ⑯
+┌──────────────────────────────────────▼──────────────────────────────────────────┐
+│  INTERNET  ──►  api.stripe.com                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<hr>
+
+<h2>Step-by-Step Flow Reference</h2>
+
+<table>
+  <thead>
+    <tr><th>Step</th><th>Direction</th><th>From</th><th>To</th><th>Port</th><th>Layer</th><th>Note</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>①</td><td>Inbound</td><td>Client</td><td>DNS</td><td>53</td><td>DNS</td><td>Resolves <code>api.hookly.com</code> → <code>54.23.145.67</code></td></tr>
+    <tr><td>②</td><td>Inbound</td><td>Client <code>203.0.113.5</code></td><td>ALB <code>54.23.145.67</code></td><td>443</td><td>Internet</td><td>TCP SYN to ALB public IP</td></tr>
+    <tr><td>③</td><td>Inbound</td><td>IGW</td><td>Public Subnet</td><td>443</td><td>IGW</td><td>Routes public IP into VPC</td></tr>
+    <tr><td>④</td><td>Inbound</td><td>IGW</td><td>Public Subnet</td><td>443</td><td>NACL</td><td>Stateless check — inbound :443 allowed</td></tr>
+    <tr><td>⑤</td><td>Inbound</td><td>IGW</td><td>Public Subnet</td><td>—</td><td>Route Table</td><td><code>0.0.0.0/0 → IGW</code>, <code>10.0.0.0/16 → local</code></td></tr>
+    <tr><td>⑥</td><td>Inbound</td><td>Internet</td><td>ALB <code>54.23.145.67</code></td><td>443</td><td>Security Group</td><td>SG allows :443 from <code>0.0.0.0/0</code></td></tr>
+    <tr><td>⑦</td><td>Inbound</td><td>ALB</td><td>EC2 <code>10.0.2.15</code></td><td>8080</td><td>ALB</td><td>Listener forwards to Target Group</td></tr>
+    <tr><td>⑧</td><td>Inbound</td><td>ALB subnet</td><td>Private Subnet</td><td>8080</td><td>NACL</td><td>Stateless check — inbound :8080 from <code>10.0.1.0/24</code></td></tr>
+    <tr><td>⑨</td><td>Inbound</td><td>ALB subnet</td><td>Private Subnet</td><td>—</td><td>Route Table</td><td><code>10.0.0.0/16 → local</code>, <code>0.0.0.0/0 → NAT GW</code></td></tr>
+    <tr><td>⑩</td><td>Inbound</td><td>ALB</td><td>EC2 <code>10.0.2.15</code></td><td>8080</td><td>Security Group</td><td>SG allows :8080 from ALB-SG only</td></tr>
+    <tr><td>⑪</td><td>Internal</td><td>EC2 <code>10.0.2.15</code></td><td>RDS <code>10.0.2.50</code></td><td>5432</td><td>Security Group</td><td>SG allows :5432 from EC2-SG only</td></tr>
+    <tr><td>⑫</td><td>Outbound</td><td>EC2 <code>10.0.2.15</code></td><td>NAT GW <code>10.0.1.100</code></td><td>any</td><td>Route Table</td><td><code>0.0.0.0/0 → NAT GW</code> in private subnet</td></tr>
+    <tr><td>⑬</td><td>Outbound</td><td>Private Subnet</td><td>Public Subnet</td><td>any</td><td>NACL</td><td>Outbound ephemeral ports allowed</td></tr>
+    <tr><td>⑭</td><td>Outbound</td><td>NAT GW <code>10.0.1.100</code></td><td>IGW</td><td>any</td><td>NAT Gateway</td><td>SNAT: <code>10.0.2.15</code> → EIP <code>52.14.88.12</code></td></tr>
+    <tr><td>⑮</td><td>Outbound</td><td>NAT GW EIP</td><td>IGW</td><td>any</td><td>IGW</td><td>Routes EIP traffic to internet</td></tr>
+    <tr><td>⑯</td><td>Outbound</td><td>IGW</td><td><code>api.stripe.com</code></td><td>443</td><td>Internet</td><td>Stripe sees src <code>52.14.88.12</code></td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Security Layers at a Glance</h2>
+
+<table>
+  <thead>
+    <tr><th>Layer</th><th>Stateful</th><th>Key Rule</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>NACL</td>
+      <td>No — each packet judged independently</td>
+      <td>First matching rule number wins. Allow inbound <code>:443</code> → must also allow outbound <code>:1024–65535</code> or response is dropped</td>
+    </tr>
+    <tr>
+      <td>Security Group</td>
+      <td>Yes — tracks the connection</td>
+      <td>Allow inbound <code>:443</code> → outbound response is automatically permitted</td>
+    </tr>
+    <tr>
+      <td>Route Table</td>
+      <td>—</td>
+      <td>Longest prefix match — <code>10.0.2.0/24</code> beats <code>0.0.0.0/0</code>. Routing decision only, not allow/deny</td>
+    </tr>
+    <tr>
+      <td>ALB</td>
+      <td>—</td>
+      <td>Terminates TLS, forwards to TG</td>
+    </tr>
+    <tr>
+      <td>NAT Gateway</td>
+      <td>—</td>
+      <td>SNAT: hides private IP behind EIP</td>
+    </tr>
+  </tbody>
+</table>
+
 </body>
 </html>
