@@ -76,68 +76,6 @@
 
 <hr>
 
-<h2>Acronyms</h2>
-
-<table>
-  <thead>
-    <tr><th>Acronym</th><th>Full Form</th><th>What it means</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>VPC</td><td>Virtual Private Cloud</td><td>Your isolated private network inside AWS</td></tr>
-    <tr><td>IGW</td><td>Internet Gateway</td><td>Connects the VPC to the public internet</td></tr>
-    <tr><td>NAT</td><td>Network Address Translation</td><td>Rewrites IP addresses as packets cross a boundary</td></tr>
-    <tr><td>SNAT</td><td>Source NAT</td><td>Specifically replaces the <em>source</em> IP — what NAT GW does to hide your EC2's private IP</td></tr>
-    <tr><td>NACL</td><td>Network Access Control List</td><td>Stateless firewall rules applied at the subnet boundary</td></tr>
-    <tr><td>SG</td><td>Security Group</td><td>Stateful firewall rules applied to a specific resource</td></tr>
-    <tr><td>ALB</td><td>Application Load Balancer</td><td>Layer 7 load balancer — routes HTTP/S traffic to targets</td></tr>
-    <tr><td>TG</td><td>Target Group</td><td>The set of EC2s the ALB forwards traffic to</td></tr>
-    <tr><td>EC2</td><td>Elastic Compute Cloud</td><td>A virtual machine (your app server)</td></tr>
-    <tr><td>RDS</td><td>Relational Database Service</td><td>AWS managed relational database (Postgres, MySQL, etc.)</td></tr>
-    <tr><td>EIP</td><td>Elastic IP</td><td>A static public IP address you own in AWS</td></tr>
-    <tr><td>CIDR</td><td>Classless Inter-Domain Routing</td><td>IP range notation — <code>10.0.0.0/16</code> means 65,536 addresses</td></tr>
-    <tr><td>DNS</td><td>Domain Name System</td><td>Translates <code>api.hookly.com</code> to an IP address</td></tr>
-    <tr><td>TLS</td><td>Transport Layer Security</td><td>Encryption protocol behind HTTPS</td></tr>
-  </tbody>
-</table>
-
-<hr>
-
-<h2>Key Players</h2>
-
-<table>
-  <thead>
-    <tr><th>Concept</th><th>What it does</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Security Group</strong></td>
-      <td>Firewall on a resource. <strong>Stateful</strong> — allow inbound <code>:443</code> and the response packet is automatically allowed out. No extra outbound rule needed.</td>
-    </tr>
-    <tr>
-      <td><strong>NACL</strong></td>
-      <td>Firewall at the subnet boundary. <strong>Stateless</strong> — allow inbound <code>:443</code> and you must <em>also</em> explicitly allow outbound <code>:1024–65535</code> (ephemeral ports) or the response is dropped. Rules are evaluated <strong>in order by rule number</strong> — first match wins, so rule ordering matters.</td>
-    </tr>
-    <tr>
-      <td><strong>Route Table</strong></td>
-      <td>Decides where a packet goes next (IGW, NAT GW, or stays local). Uses <strong>longest prefix match</strong> — most specific route wins. <code>10.0.2.0/24</code> beats <code>0.0.0.0/0</code> for traffic to <code>10.0.2.15</code>.</td>
-    </tr>
-    <tr>
-      <td><strong>Internet Gateway</strong></td>
-      <td>The door between your VPC and the public internet</td>
-    </tr>
-    <tr>
-      <td><strong>NAT Gateway</strong></td>
-      <td>Lets private resources reach the internet without being reachable from it</td>
-    </tr>
-    <tr>
-      <td><strong>ALB</strong></td>
-      <td>Receives incoming traffic and forwards it to a healthy target (your EC2)</td>
-    </tr>
-  </tbody>
-</table>
-
-<hr>
-
 <h2>Service Diagram</h2>
 
 <pre>
@@ -172,6 +110,74 @@
     <tr><td>EC2 Web Server</td><td><code>10.0.2.15:8080</code></td></tr>
     <tr><td>RDS Postgres</td><td><code>10.0.2.50:5432</code></td></tr>
     <tr><td>External Service</td><td><code>api.stripe.com</code></td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Acronyms</h2>
+
+<table>
+  <thead>
+    <tr><th>Acronym</th><th>Full Form</th><th>What it means</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>VPC</td><td>Virtual Private Cloud</td><td>Your isolated private network inside AWS</td></tr>
+    <tr><td>IGW</td><td>Internet Gateway</td><td>Connects the VPC to the public internet</td></tr>
+    <tr><td>NAT</td><td>Network Address Translation</td><td>Rewrites IP addresses as packets cross a boundary</td></tr>
+    <tr><td>SNAT</td><td>Source NAT</td><td>Specifically replaces the <em>source</em> IP — what NAT GW does to hide your EC2's private IP</td></tr>
+    <tr><td>NACL</td><td>Network Access Control List</td><td>Stateless firewall rules applied at the subnet boundary</td></tr>
+    <tr><td>SG</td><td>Security Group</td><td>Stateful firewall rules applied to a specific resource</td></tr>
+    <tr><td>ALB</td><td>Application Load Balancer</td><td>Layer 7 load balancer — routes HTTP/S traffic to targets</td></tr>
+    <tr><td>TG</td><td>Target Group</td><td>The set of EC2s the ALB forwards traffic to</td></tr>
+    <tr><td>EC2</td><td>Elastic Compute Cloud</td><td>A virtual machine (your app server)</td></tr>
+    <tr><td>RDS</td><td>Relational Database Service</td><td>AWS managed relational database (Postgres, MySQL, etc.)</td></tr>
+    <tr><td>EIP</td><td>Elastic IP</td><td>A static public IP address you own in AWS</td></tr>
+    <tr><td>CIDR</td><td>Classless Inter-Domain Routing</td><td>IP range notation — <code>10.0.0.0/16</code> means 65,536 addresses</td></tr>
+    <tr><td>DNS</td><td>Domain Name System</td><td>Translates <code>api.hookly.com</code> to an IP address</td></tr>
+    <tr><td>TLS</td><td>Transport Layer Security</td><td>Encryption protocol behind HTTPS</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Key Concepts</h2>
+
+<table>
+  <thead>
+    <tr><th>Concept</th><th>Stateful?</th><th>What it does</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Security Group</strong></td>
+      <td>Yes</td>
+      <td>Firewall on a resource. Allow inbound <code>:443</code> and the response is automatically allowed out. No extra outbound rule needed.</td>
+    </tr>
+    <tr>
+      <td><strong>NACL</strong></td>
+      <td>No</td>
+      <td>Firewall at the subnet boundary. Allow inbound <code>:443</code> and you must <em>also</em> explicitly allow outbound <code>:1024–65535</code> (ephemeral ports) or the response is dropped. Rules evaluated <strong>in order by rule number</strong> — first match wins.</td>
+    </tr>
+    <tr>
+      <td><strong>Route Table</strong></td>
+      <td>—</td>
+      <td>Decides where a packet goes next (IGW, NAT GW, or stays local). <strong>Longest prefix match</strong> — most specific route wins. Routing decision only, not allow/deny.</td>
+    </tr>
+    <tr>
+      <td><strong>Internet Gateway</strong></td>
+      <td>—</td>
+      <td>The door between your VPC and the public internet.</td>
+    </tr>
+    <tr>
+      <td><strong>NAT Gateway</strong></td>
+      <td>—</td>
+      <td>Lets private resources reach the internet without being reachable from it. SNAT: hides EC2's private IP behind the EIP.</td>
+    </tr>
+    <tr>
+      <td><strong>ALB</strong></td>
+      <td>—</td>
+      <td>Terminates TLS, then forwards to a healthy target in the Target Group.</td>
+    </tr>
   </tbody>
 </table>
 
@@ -335,42 +341,6 @@
   </tbody>
 </table>
 
-<hr>
-
-<h2>Security Layers at a Glance</h2>
-
-<table>
-  <thead>
-    <tr><th>Layer</th><th>Stateful</th><th>Key Rule</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>NACL</td>
-      <td>No — each packet judged independently</td>
-      <td>First matching rule number wins. Allow inbound <code>:443</code> → must also allow outbound <code>:1024–65535</code> or response is dropped</td>
-    </tr>
-    <tr>
-      <td>Security Group</td>
-      <td>Yes — tracks the connection</td>
-      <td>Allow inbound <code>:443</code> → outbound response is automatically permitted</td>
-    </tr>
-    <tr>
-      <td>Route Table</td>
-      <td>—</td>
-      <td>Longest prefix match — <code>10.0.2.0/24</code> beats <code>0.0.0.0/0</code>. Routing decision only, not allow/deny</td>
-    </tr>
-    <tr>
-      <td>ALB</td>
-      <td>—</td>
-      <td>Terminates TLS, forwards to TG</td>
-    </tr>
-    <tr>
-      <td>NAT Gateway</td>
-      <td>—</td>
-      <td>SNAT: hides private IP behind EIP</td>
-    </tr>
-  </tbody>
-</table>
 
 </body>
 </html>
