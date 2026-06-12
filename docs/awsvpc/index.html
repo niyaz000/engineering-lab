@@ -93,6 +93,48 @@
                                 └─────────────────────┘
 </pre>
 
+<h2>Deployment Design</h2>
+
+<p>Who can reach what, and why each resource is placed where it is.</p>
+
+<table>
+  <thead>
+    <tr><th>Resource</th><th>Subnet</th><th>Internet-Facing</th><th>Accessible From</th><th>Why</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>ALB</strong></td>
+      <td>Public</td>
+      <td>Yes</td>
+      <td>Anyone (<code>0.0.0.0/0</code> on <code>:443</code>)</td>
+      <td>It's the front door. Must accept requests from any client on the internet.</td>
+    </tr>
+    <tr>
+      <td><strong>NAT Gateway</strong></td>
+      <td>Public</td>
+      <td>Yes (EIP only)</td>
+      <td>Private subnet (outbound only)</td>
+      <td>Needs a public IP to forward outbound traffic. The EIP is the <em>source</em> address Stripe sees — nothing on the internet can initiate a connection to it.</td>
+    </tr>
+    <tr>
+      <td><strong>EC2</strong></td>
+      <td>Private</td>
+      <td>No</td>
+      <td>ALB only (SG reference to ALB-SG)</td>
+      <td>Application logic shouldn't be directly internet-accessible. Locking the SG to ALB-SG means even someone who knows the private IP can't reach it from outside.</td>
+    </tr>
+    <tr>
+      <td><strong>RDS</strong></td>
+      <td>Private</td>
+      <td>No</td>
+      <td>EC2 only (SG reference to EC2-SG)</td>
+      <td>The database never needs to speak to the internet — not inbound, not outbound. Only the app layer should have a connection to it.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The pattern is a strict tier model: public subnet holds only what <em>must</em> be internet-reachable, private subnet holds everything else. Security Groups then restrict access within those tiers to named sources rather than IP ranges, so adding a second EC2 to the Target Group automatically inherits the right to reach RDS without any rule changes.</p>
+
 <h2>Reference Values</h2>
 
 <table>

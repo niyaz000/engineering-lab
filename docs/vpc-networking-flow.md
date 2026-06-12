@@ -25,6 +25,19 @@ Diagrams show the request direction. Responses retrace the same path — Securit
                                   └─────────────────────┘
 ```
 
+## Deployment Design
+
+Who can reach what, and why each resource is placed where it is.
+
+| Resource       | Subnet  | Internet-Facing | Accessible From                  | Why                                                                                          |
+|----------------|---------|-----------------|----------------------------------|----------------------------------------------------------------------------------------------|
+| **ALB**        | Public  | Yes             | Anyone (`0.0.0.0/0` on `:443`)   | It's the front door. Must accept requests from any client on the internet.                   |
+| **NAT Gateway**| Public  | Yes (EIP only)  | Private subnet (outbound only)   | Needs a public IP to forward outbound traffic. The EIP is the *source* address Stripe sees — nothing on the internet can initiate a connection to it. |
+| **EC2**        | Private | No              | ALB only (SG reference to ALB-SG)| Application logic shouldn't be directly internet-accessible. Locking the SG to ALB-SG means even someone who knows the private IP can't reach it from outside. |
+| **RDS**        | Private | No              | EC2 only (SG reference to EC2-SG)| The database never needs to speak to the internet — not inbound, not outbound. Only the app layer should have a connection to it. |
+
+The pattern is a strict tier model: public subnet holds only what *must* be internet-reachable, private subnet holds everything else. Security Groups then restrict access within those tiers to named sources rather than IP ranges, so adding a second EC2 to the Target Group automatically inherits the right to reach RDS without any rule changes.
+
 ## Reference Values
 
 | Resource         | Value                                  |
