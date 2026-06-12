@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS VPC Networking: Full Request Journey</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --text-primary: rgba(0, 0, 0, 0.84);
+            --text-secondary: rgba(0, 0, 0, 0.68);
+            --text-muted: rgba(0, 0, 0, 0.54);
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --border-color: rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: "Charter", "Georgia", "Palatino", "Times New Roman", serif;
+            line-height: 1.68;
+            color: var(--text-primary);
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 80px 20px;
+            background: var(--bg-primary);
+        }
+
+        #back {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 48px;
+            letter-spacing: 0.01em;
+        }
+        #back:hover { color: var(--text-primary); }
+
+        #content h1 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.022em;
+            margin-bottom: 24px;
+        }
+
+        #content h2 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.016em;
+            margin: 48px 0 16px;
+        }
+
+        #content h3 {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 32px 0 12px;
+        }
+
+        #content p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        #content blockquote {
+            border-left: 3px solid var(--text-primary);
+            margin: 32px 0;
+            padding: 4px 0 4px 24px;
+            font-style: italic;
+            font-size: 20px;
+            color: var(--text-secondary);
+        }
+
+        #content pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px 24px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        #content code {
+            font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+        }
+
+        #content p code, #content li code {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 15px;
+        }
+
+        #content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 15px;
+        }
+
+        #content th {
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--text-primary);
+            color: var(--text-primary);
+        }
+
+        #content td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        #content tr:last-child td {
+            border-bottom: none;
+        }
+
+        #content ul, #content ol {
+            padding-left: 28px;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        #content li {
+            margin-bottom: 6px;
+        }
+
+        #content hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 48px 0;
+        }
+
+        footer {
+            margin-top: 80px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-family: "sohne", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 40px 20px; }
+            #content h1 { font-size: 30px; }
+            #content pre { font-size: 11px; padding: 14px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="../" id="back">← Engineering Lab</a>
+    <div id="content">Loading…</div>
+    <footer>Built with simplicity and attention to detail</footer>
+
+    <script>
+        fetch('vpc-networking-flow.md')
+            .then(r => r.text())
+            .then(md => {
+                document.getElementById('content').innerHTML = marked.parse(md);
+                const h1 = document.querySelector('#content h1');
+                if (h1) document.title = h1.textContent;
+            })
+            .catch(() => {
+                document.getElementById('content').textContent = 'Failed to load article.';
+            });
+    </script>
+</body>
+</html>
